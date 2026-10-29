@@ -1,0 +1,2 @@
+a65b7d60748edb66699908a69da4401d85dd0b60b6124d428ee61424d8b9339a  BoJangles-0.1.0-linux-x86_64.tar.gz
+6cd2717c598108c26ec78d1a1ba1538315fa447fc03cef624ae8cad52deecc05  BoJangles-0.1.0-source.tar.gz
