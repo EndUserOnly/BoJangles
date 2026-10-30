@@ -8,6 +8,21 @@
 
 BoJangles is a Linux Internet browsing suite with a native browser, crawler, independently controlled media windows and Media Center Library. Media workflows include recording, translation and transcription; optional models are obtained separately.
 
+## Native updates and webpage snapshots
+
+[Download the qualified update release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-updates.20261030). Its complete application, matching source and checksums are separate release assets. The original first release remains below.
+
+Use [the signed update channel](updates/README.md) to configure the trusted publisher. Automatic checks run while BoJangles is open; downloads and installation require your approval. No new dependency, service or launch wrapper is added. WPE remains the default.
+
+For a fresh private installation, verify the archive using the release's GITHUB-UPDATES-SHA256SUMS.txt, extract it, then run:
+
+```sh
+python3 public-release-20261030-github-updates/install-public-release.py public-release-20261030-github-updates --sha256 37fd875f0d7e76a02399f5f4b56a3fb217da55f3bd26353d7dc1bf09c54968a3
+bojangles open
+```
+
+Webpage-only Save Snapshot offers full-page PNG, PDF, MHTML and HTML + Resources ZIP. PNG is one file; the extracted HTML ZIP includes its resources folder. Capture uses the current WPE page. See the release notes for limits and qualification.
+
 ## First release
 
 [Download release v0.1.0](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0)
