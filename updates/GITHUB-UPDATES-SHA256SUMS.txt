@@ -1,0 +1,2 @@
+3ca29e4ad301eade21571433cb6959665fb3c01d368d4cb2b3861e34fed6cabe  BoJangles-0.1.0-github-updates-20261030-linux-x86_64.tar.gz
+f360b81fb412cd637a72cef5a3dab6c310079c0595e1d14d0a17ac4a312b8d65  BoJangles-0.1.0-github-updates-20261030-source.tar.gz
