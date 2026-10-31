@@ -42,6 +42,19 @@ jobs:
         run: python3 ci/build_update.py tests
       - name: Compile standalone application with four jobs
         run: python3 ci/build_update.py compile
+      - name: Retain the successful compilation for packaging recovery
+        uses: actions/upload-artifact@v4
+        with:
+          name: bojangles-compiled-inputs
+          path: |
+            ci-work/builder/bojangles-app-output/bojangles.dist/
+            ci-work/builder/bojangles-app-compilation.xml
+            ci-work/release/
+            ci-work/source/src/
+            ci-work/source/requirements-build.txt
+            ci-work/input-record.json
+            ci-work/native-build.json
+          retention-days: 2
       - name: Qualify complete archive and native updater extraction
         run: python3 ci/build_update.py package
       - name: Retain qualification output
