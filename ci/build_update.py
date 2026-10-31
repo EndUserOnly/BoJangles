@@ -51,8 +51,19 @@ def prepare():
   if relative.is_absolute() or '..' in relative.parts or sha(ROOT / name) != digest: raise ValueError('Unsafe or changed source input')
   destination = SOURCE / name; destination.parent.mkdir(parents=True, exist_ok=True)
   shutil.copy2(ROOT / name, destination)
+ # Preserve optional runtime support from the qualified predecessor rather
+ # than letting a clean runner silently omit decryption/proxy/media modules.
+ pins = {'Brotli': '1.1.0', 'PySocks': '1.7.1', 'bcrypt': '3.2.2',
+         'chardet': '5.2.0', 'dbus-python': '1.3.2', 'idna': '3.6',
+         'mutagen': '1.46.0', 'olefile': '0.46', 'pyOpenSSL': '23.2.0',
+         'pycryptodomex': '3.20.0', 'simplejson': '3.19.2', 'six': '1.16.0',
+         'urllib3': '2.0.7'}
+ requirements = SOURCE / 'requirements-build.txt'
+ with requirements.open('a') as f:
+  f.write('\n# Qualified predecessor runtime distribution versions.\n')
+  for name, version in pins.items(): f.write(name + '==' + version + '\n')
  recipe = json.loads((SOURCE / 'native/wpe/production-application-build.json').read_text())
- packages = sorted(set(recipe['required_runtime_packages'] + recipe['required_build_packages'] + ['libsoup-3.0-dev', 'libegl1-mesa-dev', 'libdrm-dev', 'libgbm-dev', 'libinput-dev', 'libxkbcommon-dev', 'libudev-dev', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev', 'python3-tk', 'python3-setuptools', 'python3-wheel', 'dbus-x11', 'xauth', 'xvfb', 'gir1.2-gtk-4.0', 'gir1.2-graphene-1.0', 'gir1.2-gst-plugins-base-1.0', 'gir1.2-soup-3.0']))
+ packages = sorted(set(recipe['required_runtime_packages'] + recipe['required_build_packages'] + ['libsoup-3.0-dev', 'libegl1-mesa-dev', 'libdrm-dev', 'libgbm-dev', 'libinput-dev', 'libxkbcommon-dev', 'libudev-dev', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev', 'python3-tk', 'python3-setuptools', 'python3-wheel', 'dbus-x11', 'xauth', 'xvfb', 'gir1.2-gtk-4.0', 'gir1.2-graphene-1.0', 'gir1.2-gst-plugins-base-1.0', 'gir1.2-soup-3.0', 'python3-dbus', 'libdbus-1-dev']))
  (WORK / 'apt-packages.txt').write_text('\n'.join(packages) + '\n')
  write(WORK / 'input-record.json', {'source_commit': os.environ['GITHUB_SHA'], 'baseline_inputs': INPUTS, 'changed_source_sha256': files})
 
