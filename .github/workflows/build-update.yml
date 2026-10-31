@@ -25,6 +25,19 @@ jobs:
         run: python3 ci/build_update.py bootstrap
       - name: Compile bounded native broker
         run: python3 ci/build_update.py broker
+      - name: Permit the CI sandbox launcher to create user namespaces
+        run: |
+          # Ubuntu documents this narrowly attached profile for sandbox launchers.
+          # Keep the global namespace restriction and all product sandboxing intact.
+          sudo tee /etc/apparmor.d/bojangles-ci-bwrap >/dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile bojangles-ci-bwrap /usr/bin/bwrap flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/bojangles-ci-bwrap
+          bwrap --unshare-all --ro-bind / / -- /usr/bin/true
       - name: Run isolated source and native regressions
         run: python3 ci/build_update.py tests
       - name: Compile standalone application with four jobs
