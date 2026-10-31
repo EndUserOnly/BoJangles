@@ -113,6 +113,11 @@ def tests():
 
 
 def compile_app():
+ # Bootstrap snapshots the source. Its release authority must include the
+ # completed broker manifest before compiling the standalone application.
+ relative = Path('bojangles/renderer/installed.py')
+ if (BUILDER / 'bojangles-app-source' / relative).read_bytes() != (SOURCE / 'src' / relative).read_bytes():
+  raise ValueError('Compiler source has stale native release authority; bootstrap after broker')
  run([sys.executable, SOURCE / 'scripts/build-production-application.py', '--builder-root', BUILDER, '--jobs', '4'])
 
 
