@@ -63,7 +63,7 @@ def prepare():
   f.write('\n# Qualified predecessor runtime distribution versions.\n')
   for name, version in pins.items(): f.write(name + '==' + version + '\n')
  recipe = json.loads((SOURCE / 'native/wpe/production-application-build.json').read_text())
- packages = sorted(set(recipe['required_runtime_packages'] + recipe['required_build_packages'] + ['libsoup-3.0-dev', 'libegl1-mesa-dev', 'libdrm-dev', 'libgbm-dev', 'libinput-dev', 'libxkbcommon-dev', 'libudev-dev', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev', 'python3-tk', 'python3-setuptools', 'python3-wheel', 'dbus-x11', 'xauth', 'xvfb', 'gir1.2-gtk-4.0', 'gir1.2-graphene-1.0', 'gir1.2-gst-plugins-base-1.0', 'gir1.2-soup-3.0', 'python3-dbus', 'libdbus-1-dev']))
+ packages = sorted(set(recipe['required_runtime_packages'] + recipe['required_build_packages'] + ['libsoup-3.0-dev', 'libegl1-mesa-dev', 'libdrm-dev', 'libgbm-dev', 'libinput-dev', 'libxkbcommon-dev', 'libudev-dev', 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev', 'python3-tk', 'python3-setuptools', 'python3-wheel', 'dbus-x11', 'xauth', 'xvfb', 'gir1.2-gtk-4.0', 'gir1.2-graphene-1.0', 'gir1.2-gst-plugins-base-1.0', 'gir1.2-soup-3.0', 'python3-dbus', 'libdbus-1-dev', 'python3-numpy', 'python3-pil', 'python3-pil.imagetk', 'python3-nacl', 'python3-brotli', 'python3-socks', 'python3-bcrypt', 'python3-chardet', 'python3-idna', 'python3-mutagen', 'python3-olefile', 'python3-openssl', 'python3-pycryptodome', 'python3-simplejson', 'python3-six', 'python3-urllib3']))
  (WORK / 'apt-packages.txt').write_text('\n'.join(packages) + '\n')
  write(WORK / 'input-record.json', {'source_commit': os.environ['GITHUB_SHA'], 'baseline_inputs': INPUTS, 'changed_source_sha256': files})
 
