@@ -85,9 +85,20 @@ def bootstrap():
 def tests():
  env = dict(os.environ, BOJANGLES_BROKER_RUNTIME=str(RELEASE / 'stage/wpe'))
  modules = ['test_response_header_budget', 'test_wpe_stage5c_transport', 'test_wpe_stage5d_transport', 'test_bookmarks', 'test_error_isolation.ErrorIsolation.test_header_count_value_and_directional_byte_limits', 'test_wpe_step12.DescriptorTests', 'test_bookmark_save_regression', 'test_response_header_runtime', 'test_bookmark_save_runtime', 'test_bookmark_same_window.BookmarkRuntimeTests', 'test_update_notifications', 'test_update_panel']
- # All frontend stores are temporary before any test/frontend import.
+ # Separate native/UI lifetimes: destroyed Tk roots must never be collected
+ # by an update worker belonging to a later fixture in the same interpreter.
+ modules.remove('test_update_panel')
+ modules += ['test_update_panel.UpdatePanelTests.' + name for name in [
+  'test_preview_is_inline_and_cannot_download_or_install',
+  'test_signed_feed_appears_once_and_worker_retires',
+  'test_automatic_check_refreshes_an_already_open_panel',
+  'test_secondary_browser_can_open_updates_on_the_primary',
+  'test_preview_cannot_retry_or_change_a_real_queued_operation']]
+ # Every invocation isolates HOME/XDG before any test/frontend import.
  with (OUT / 'source-native-tests.log').open('w') as log:
-  run(['xvfb-run', '-a', BUILDER / 'bojangles-app-build-venv/bin/python', SOURCE / 'scripts/run-isolated-tests.py', '-v', *modules], env=env, stdout=log, stderr=subprocess.STDOUT)
+  for module in modules:
+   print('ISOLATED PROCESS: ' + module, file=log, flush=True)
+   run(['xvfb-run', '-a', BUILDER / 'bojangles-app-build-venv/bin/python', SOURCE / 'scripts/run-isolated-tests.py', '-v', module], env=env, stdout=log, stderr=subprocess.STDOUT)
 
 
 def compile_app():
