@@ -2,6 +2,9 @@
 from pathlib import Path
 import hashlib, importlib.util, json, os, re, shlex, shutil, subprocess, sys, tarfile, tempfile, urllib.request, zipfile
 
+# Verification must not add bytecode files to an authenticated release tree.
+sys.dont_write_bytecode = True
+
 ROOT = Path(__file__).resolve().parents[1]
 WORK = ROOT / 'ci-work'
 SOURCE = WORK / 'source'
