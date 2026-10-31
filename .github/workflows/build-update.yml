@@ -1,0 +1,49 @@
+name: Build and qualify BoJangles update
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'native/**', 'tests/**', 'ci/**', '.github/workflows/build-update.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: bojangles-update-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify published inputs and prepare source
+        run: python3 ci/build_update.py prepare
+      - name: Install declared runner dependencies
+        run: |
+          sudo apt-get update
+          xargs -a ci-work/apt-packages.txt sudo apt-get install -y --no-install-recommends
+      - name: Prepare pinned compiler
+        run: python3 ci/build_update.py bootstrap
+      - name: Compile bounded native broker
+        run: python3 ci/build_update.py broker
+      - name: Run isolated source and native regressions
+        run: python3 ci/build_update.py tests
+      - name: Compile standalone application with four jobs
+        run: python3 ci/build_update.py compile
+      - name: Qualify complete archive and native updater extraction
+        run: python3 ci/build_update.py package
+      - name: Retain qualification output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bojangles-header-bookmark-update
+          path: ci-work/artifacts/
+          retention-days: 7
+      - name: Publish qualified update assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.1.0-header-bookmarks.20261030 \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "BoJangles — bounded headers and bookmark visibility" \
+            --notes "GitHub-built updater test release. Fixes HTTP response header rejection and cross-browser bookmark visibility. Complete native application, corresponding source, checksums and validation are included. No site-specific repairs or launch wrappers. Playback and authenticated WordPress use remain owner tests. The signed feed is published separately after verifying these assets." \
+            ci-work/artifacts/*
