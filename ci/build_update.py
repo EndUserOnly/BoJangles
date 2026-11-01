@@ -88,6 +88,59 @@ def broker():
  write(WORK / 'native-build.json', {'broker_sha256': sha(prefix / 'bin/bojangles-wpe'), 'source_sha256': sha(SOURCE / 'native/wpe/broker-v1/main.c'), 'wpe_manifest_sha256': sha(RELEASE / 'manifest.json'), 'engine_recompiled': False})
 
 
+def recover_compilation():
+ # Only the recorded, successfully compiled input set may be recovered. Source
+ # comparisons prevent a later source edit from reusing an older executable.
+ saved = WORK / 'recovery'
+ record = json.loads((saved / 'input-record.json').read_text())
+ if os.environ.get('RECOVERY_RUN') != '41219810584' or record['source_commit'] != '960a259a54f2ab2907f541a0f0a4a699b30c00ba':
+  raise ValueError('Unqualified compilation recovery input')
+ if record['changed_source_sha256'] != json.loads((ROOT / 'ci/source-files.json').read_text()):
+  raise ValueError('Recovery does not match reviewed source inputs')
+ built = json.loads((saved / 'native-build.json').read_text())
+ original = saved / 'release' / CANDIDATE
+ broker = original / 'stage/wpe/bin/bojangles-wpe'
+ if sha(broker) != built['broker_sha256'] or sha(original / 'manifest.json') != built['wpe_manifest_sha256']:
+  raise ValueError('Recovered broker authority mismatch')
+ relative = Path('bojangles/renderer/installed.py')
+ expected = (SOURCE / 'src' / relative).read_text()
+ line = "_WPE_RELEASE_ID = 'public-release-20261030-github-updates'"
+ expected = expected.replace(line, f"_WPE_RELEASE_MANIFESTS[{CANDIDATE!r}] = {built['wpe_manifest_sha256']!r}\n_WPE_RELEASE_ID = {CANDIDATE!r}")
+ saved_source = saved / 'source/src'
+ actual_files = {p.relative_to(saved_source) for p in saved_source.rglob('*') if p.is_file() and '__pycache__' not in p.parts}
+ source_files = {p.relative_to(SOURCE / 'src') for p in (SOURCE / 'src').rglob('*') if p.is_file() and '__pycache__' not in p.parts}
+ if actual_files != source_files: raise ValueError('Recovered source inventory mismatch')
+ for name in source_files:
+  wanted = expected.encode() if name == relative else (SOURCE / 'src' / name).read_bytes()
+  if (saved_source / name).read_bytes() != wanted: raise ValueError('Recovered source differs: ' + str(name))
+ (SOURCE / 'src' / relative).write_text(expected)
+ shutil.copy2(broker, RELEASE / 'stage/wpe/bin/bojangles-wpe')
+ (RELEASE / 'stage/wpe/bin/bojangles-wpe').chmod(0o755)
+ shutil.copy2(original / 'manifest.json', RELEASE / 'manifest.json')
+ shutil.copy2(saved / 'native-build.json', WORK / 'native-build.json')
+ # Artifact ZIPs do not preserve executable modes. Restore the predecessor's
+ # declared modes for retained assets, and the compiled command's mode.
+ dist = saved / 'builder/bojangles-app-output/bojangles.dist'
+ baseline = RELEASE / 'native-command/app'
+ for path in dist.rglob('*'):
+  if path.is_file():
+   prior = baseline / path.relative_to(dist)
+   path.chmod(0o755 if prior.is_file() and prior.stat().st_mode & 0o111 else 0o644)
+ (dist / 'bojangles.bin').chmod(0o755)
+ report = saved / 'builder/bojangles-app-compilation.xml'
+ import xml.etree.ElementTree as ET
+ if ET.parse(report).getroot().get('completion') != 'yes': raise ValueError('Recovered compilation incomplete')
+ record['packaging_recovery_run'] = os.environ['GITHUB_RUN_ID']
+ write(WORK / 'input-record.json', record)
+
+
+def restore_compilation():
+ saved = WORK / 'recovery/builder'
+ target = BUILDER / 'bojangles-app-output/bojangles.dist'
+ shutil.copytree(saved / 'bojangles-app-output/bojangles.dist', target)
+ shutil.copy2(saved / 'bojangles-app-compilation.xml', BUILDER / 'bojangles-app-compilation.xml')
+
+
 def bootstrap():
  if (os.cpu_count() or 0) < 4: raise ValueError('At least four compiler jobs are required')
  run([sys.executable, SOURCE / 'scripts/bootstrap-public-build.py', BUILDER])
@@ -197,6 +250,8 @@ def compiled_checks():
   store = home / '.local/share/bojangles/releases'; store.mkdir(parents=True)
   (store / CANDIDATE).symlink_to(RELEASE, target_is_directory=True)
   (store / 'active.json').write_text(json.dumps({'schema': 1, 'active': CANDIDATE, 'previous': None}))
+  command = home / '.local/bin/bojangles'; command.parent.mkdir(parents=True)
+  command.symlink_to(RELEASE / 'native-command/app/bojangles.bin')
   for args in [['--help'], ['version'], ['status'], ['advertising', 'rules'], ['transcribe', '--help'], ['media', 'status'], ['maint', 'check', '--json']]:
    p = subprocess.run([str(RELEASE / 'native-command/app/bojangles.bin'), *args], env=env, capture_output=True, text=True, timeout=120, cwd='/tmp')
    results.append({'args': args, 'exit_code': p.returncode, 'stdout': p.stdout, 'stderr': p.stderr})
@@ -205,5 +260,5 @@ def compiled_checks():
 
 
 if __name__ == '__main__':
- actions = {'prepare': prepare, 'broker': broker, 'bootstrap': bootstrap, 'tests': tests, 'compile': compile_app, 'package': package}
+ actions = {'prepare': prepare, 'broker': broker, 'bootstrap': bootstrap, 'tests': tests, 'compile': compile_app, 'package': package, 'recover': recover_compilation, 'restore': restore_compilation}
  actions[sys.argv[1]]()
