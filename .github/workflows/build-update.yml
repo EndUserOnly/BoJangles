@@ -4,7 +4,14 @@ on:
     branches: [main]
     paths: ['src/**', 'native/**', 'tests/**', 'ci/**', '.github/workflows/build-update.yml']
   workflow_dispatch:
+    inputs:
+      recovery_run:
+        description: 'Qualified compilation run to repackage; 0 builds fresh'
+        required: true
+        default: '0'
+        type: string
 permissions:
+  actions: read
   contents: write
 concurrency:
   group: bojangles-update-release
@@ -13,6 +20,8 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    env:
+      RECOVERY_RUN: ${{ inputs.recovery_run || '0' }}
     steps:
       - uses: actions/checkout@v4
       - name: Verify published inputs and prepare source
@@ -21,7 +30,19 @@ jobs:
         run: |
           sudo apt-get update
           xargs -a ci-work/apt-packages.txt sudo apt-get install -y --no-install-recommends
+      - name: Download qualified compilation inputs
+        if: env.RECOVERY_RUN != '0'
+        uses: actions/download-artifact@v4
+        with:
+          name: bojangles-compiled-inputs
+          run-id: ${{ env.RECOVERY_RUN }}
+          github-token: ${{ github.token }}
+          path: ci-work/recovery
+      - name: Verify recovered source and broker authority
+        if: env.RECOVERY_RUN != '0'
+        run: python3 ci/build_update.py recover
       - name: Compile bounded native broker
+        if: env.RECOVERY_RUN == '0'
         run: python3 ci/build_update.py broker
       - name: Prepare pinned compiler
         run: python3 ci/build_update.py bootstrap
@@ -40,7 +61,11 @@ jobs:
           bwrap --unshare-all --ro-bind / / -- /usr/bin/true
       - name: Run isolated source and native regressions
         run: python3 ci/build_update.py tests
+      - name: Restore the qualified compilation
+        if: env.RECOVERY_RUN != '0'
+        run: python3 ci/build_update.py restore
       - name: Compile standalone application with four jobs
+        if: env.RECOVERY_RUN == '0'
         run: python3 ci/build_update.py compile
       - name: Retain the successful compilation for packaging recovery
         uses: actions/upload-artifact@v4
