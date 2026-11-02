@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "version": "2.54.2",
+  "maintained_source_files": [
+    {
+      "path": "Source/WebKit/CMakeLists.txt",
+      "sha256": "a33190cbecbf449ffd1cbae743a6ad736f8d4a964f4991801c496a682727bad1"
+    },
+    {
+      "path": "Source/WebCore/dom/DataTransfer.cpp",
+      "sha256": "a14fb88a79bbedf4b368c5b009d27f7acdfbb186422cff31c4e4772ad545d70b"
+    },
+    {
+      "path": "Source/WebCore/platform/SourcesGStreamer.txt",
+      "sha256": "f3c7454063eb015c1de2bf758f145b4f6b2b168e67aefb7077bcd6ce1b76ad5f"
+    },
+    {
+      "path": "Source/WebCore/page/PrintContext.cpp",
+      "sha256": "c17e50618afb60f6e8a684c0f7bfec0dda203c8db0b5f6174db9a3993f14f149"
+    },
+    {
+      "path": "Source/WebCore/platform/graphics/gstreamer/GStreamerCommon.cpp",
+      "sha256": "b53b744cf9b4c9a11db6169b83d82ce6b63c08a96610292c7f8fd7511ee136f4"
+    },
+    {
+      "path": "Source/WebCore/platform/graphics/gstreamer/eme/CDMClearKeyGStreamer.h",
+      "sha256": "2162f61b1a6a768e4314f2838f307df5241f14576b4b47cf48186295f8f7bbed"
+    },
+    {
+      "path": "Source/WebCore/platform/graphics/gstreamer/eme/WebKitClearKeyDecryptorGStreamer.cpp",
+      "sha256": "51e934863997c2c3df3b83ea17c84f99e79062ba424ffc6ec5046456c58acbe9"
+    },
+    {
+      "path": "Source/WebCore/platform/graphics/gstreamer/eme/WebKitClearKeyDecryptorGStreamer.h",
+      "sha256": "4f5ec6ac5401b5e2c7850ff82732862b5798cb3f62e204dce41adda5d76e9f6f"
+    },
+    {
+      "path": "Source/WebCore/platform/graphics/gstreamer/eme/CDMClearKeyGStreamer.cpp",
+      "sha256": "3c6f6486f98d834363d267d038088da270dd9d9d8ad0cc02700a000e0a91ed2d"
+    },
+    {
+      "path": "Source/WebCore/platform/graphics/gstreamer/eme/CDMFactoryGStreamer.cpp",
+      "sha256": "c59e5b52d01a375c1eb761c5d435d4357a1f23798c8a955961d6b5fe85c663c4"
+    },
+    {
+      "path": "Source/WebCore/platform/network/glib/NetworkStateNotifierGLib.cpp",
+      "sha256": "f8ba6c467f570b2fe6858ef0e771dd47405a6f9f766769cc03c3715d49037ba8"
+    },
+    {
+      "path": "Source/ThirdParty/ANGLE/src/third_party/ceval/README.chromium",
+      "sha256": "d13e5d68ab63acc3feeeae56e0f60ea1bb23fef47effb1fb7d322d35ef6b1f50"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/WebURLSchemeTask.cpp",
+      "sha256": "098b8f32bb80d8320921184c41959a7a35ae1b78f779bce249f9a768fd6b236b"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/wpe/WebPasteboardProxyWPE.cpp",
+      "sha256": "45b7b783ba3717c52235236921125a867b958f32844f7c4d0e42b1358088b69b"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitURISchemeRequest.h.in",
+      "sha256": "b640d10e3ab6e892f2873bb824f36927c262634a7810f57324f6b8596919cf16"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitWebView.cpp",
+      "sha256": "d0cb4ea34b8a08621bd8564c43ee47f68e870d9324b26076f45d0d54b6b588f7"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitNavigationAction.h.in",
+      "sha256": "e074611f64e0a77fda20d56a25d455e3fa6a797c8605dbd8e4f4b2e8ebe1dbbc"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitURISchemeRequest.cpp",
+      "sha256": "98edb8b936ea4e3b5e60babe7db590b513c1924a097a678ec2228273b58ec4e0"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitWebContext.h.in",
+      "sha256": "5a53f62754cf6dc33fbd49b75eeca9c1c21c174d2000823690fa10246d77b616"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitNavigationAction.cpp",
+      "sha256": "481c571cede53ee16f02e96e1941acba887a4ed265b26c93f28b1f42f28ea775"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitWebContext.cpp",
+      "sha256": "afb4d34608a9e9036d72228a05e24643f27d7fc1eba5b104c3dfa8c6efef200a"
+    },
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitWebView.h.in",
+      "sha256": "14231e5065d53fd5d467840a3b02b8ba8adfdf35978ea9aeb4153dd312f0dfcf"
+    },
+    {
+      "path": "Source/WebKit/WebProcess/WebPage/WebPage.cpp",
+      "sha256": "852dd060a3563888ca762311e85fe74418dbd41efcdb66fc01fb072a8d1e76ad"
+    },
+    {
+      "path": "Source/WebKit/WebProcess/WebPage/WebURLSchemeTaskProxy.cpp",
+      "sha256": "597944a69ea486de0644eccd7bfde8aae8e0c10651fe46e9aad8c3abbeb3cb25"
+    },
+    {
+      "path": "Source/WebKit/WebProcess/WebPage/WebPage.messages.in",
+      "sha256": "56b329b676114a845c88e1ee9fa36fd4b0bcb079e38e57bb1d5327e477438e34"
+    },
+    {
+      "path": "Source/WebKit/WebProcess/WebPage/WebPage.h",
+      "sha256": "02d68542e72e449ef56e4da0c8bbdf9b58c005b9a4f9bfc72cf9ed9ea5538d09"
+    },
+    {
+      "path": "Source/WebKit/NetworkProcess/NetworkConnectionToWebProcess.cpp",
+      "sha256": "9862023d50aa25b8444df735049d3acd2201c7aecf76b5ff99737cc22a0e881e"
+    },
+    {
+      "path": "Source/WebKit/NetworkProcess/NetworkConnectionToWebProcess.h",
+      "sha256": "557129fb0f49bb9e38c77f16a3818758f2229b67c6bfc9226e7fee00d6f4b8a4"
+    },
+    {
+      "path": "Source/WebKit/NetworkProcess/NetworkConnectionToWebProcess.messages.in",
+      "sha256": "ee2ef4f80ee2d4539cafb50a7e2639c12d9f2d34a6c07bf553fbb8aae79a2323"
+    }
+  ],
+  "configure_arguments": [
+    "cmake",
+    "-S",
+    "/opt/bojangles-webkit-source",
+    "-B",
+    "/opt/bojangles-webkit-build",
+    "-G",
+    "Ninja",
+    "-C",
+    "/build/unified-features.cmake",
+    "-DPORT=WPE",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DCMAKE_INSTALL_PREFIX=/wpe",
+    "-DCMAKE_C_FLAGS=-ffile-prefix-map=/opt/bojangles-webkit-source=/usr/src/bojangles-webkit -fdebug-prefix-map=/opt/bojangles-webkit-build=/usr/src/bojangles-webkit-build",
+    "-DCMAKE_CXX_FLAGS=-ffile-prefix-map=/opt/bojangles-webkit-source=/usr/src/bojangles-webkit -fdebug-prefix-map=/opt/bojangles-webkit-build=/usr/src/bojangles-webkit-build",
+    "-DENABLE_WPE_LEGACY_API=OFF",
+    "-DENABLE_WPE_PLATFORM=ON",
+    "-DENABLE_WPE_PLATFORM_HEADLESS=ON",
+    "-DENABLE_WEBDRIVER=ON",
+    "-DENABLE_DOCUMENTATION=OFF",
+    "-DENABLE_INTROSPECTION=OFF",
+    "-DUSE_SYSTEM_UNIFDEF=ON",
+    "-DENABLE_SPEECH_SYNTHESIS=OFF",
+    "-DUSE_LIBBACKTRACE=OFF",
+    "-DENABLE_REMOTE_INSPECTOR=OFF",
+    "-DENABLE_JOURNALD_LOG=OFF",
+    "-DENABLE_WPE_QT_API=OFF",
+    "-DENABLE_COG=OFF",
+    "-DENABLE_WPE_PLATFORM_WAYLAND=OFF"
+  ],
+  "maintained_source_overrides": [
+    {
+      "path": "Source/WebKit/UIProcess/API/glib/WebKitWebView.cpp",
+      "source": "native/wpe/maintained-source/Source/WebKit/UIProcess/API/glib/WebKitWebView.cpp",
+      "sha256": "d0cb4ea34b8a08621bd8564c43ee47f68e870d9324b26076f45d0d54b6b588f7"
+    }
+  ]
+}
