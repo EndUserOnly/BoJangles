@@ -8,13 +8,25 @@
 
 BoJangles is a Linux Internet browsing suite with a native browser, crawler, independently controlled media windows and Media Center Library. Media workflows include recording, translation and transcription; optional models are obtained separately.
 
-## Current Debian release — November 2, 2026
+## Current Linux release — November 2, 2026
 
 [Download BoJangles 0.1.0-2](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-deb.20261102): `bojangles_0.1.0-2_amd64.deb`, complete corresponding `BoJangles-0.1.0-2-deb-source.tar.gz`, checksums and validation. Verify `DEB-20261102-SHA256SUMS.txt`, then install with `sudo apt install ./bojangles_0.1.0-2_amd64.deb`.
 
 This newly assembled Debian package contains the qualified November 2 application and November 1 resource/upload engine, including header/bookmark visibility, explicit media playback and crawler timeout/progress fixes. It reuses the qualified compiled payload; no new application/engine compile was needed. Uncompiled diagnostic staging and the withdrawn crawler proposal are excluded.
 
 Ubuntu 24.04-compatible amd64. APT resolves 140 declared prerequisites. Qualification passed isolated APT install/reinstall/remove with user-data preservation, seven non-root commands, 144 maintenance probes, all 128 ELF checks and 12 focused source/package regressions. See `DEBIAN.md` and `DEB-20261102-VALIDATION.md`. Existing private installations can take command precedence; `/usr/bin/bojangles` selects the Debian installation. The signed archive update feed remains separate. Complete application/engine source is the named release asset; GitHub-generated source archives contain this control repository.
+
+### Linux x86_64 archive
+
+The same [current release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-deb.20261102) also provides `BoJangles-0.1.0-20261102-linux-x86_64.tar.gz`. Verify it against `X86_64-20261102-SHA256SUMS.txt`, extract with `tar -xzf BoJangles-0.1.0-20261102-linux-x86_64.tar.gz`, then run:
+
+```sh
+python3 public-release-20261102-media-crawler-local/runtime_dependencies.py public-release-20261102-media-crawler-local
+python3 public-release-20261102-media-crawler-local/install-public-release.py public-release-20261102-media-crawler-local --sha256 72f8fa8223ba869686b675c3057b10e5e10352affd7be595acd6ec492fc9417c
+bojangles open
+```
+
+The archive installer uses the private release store and retains the predecessor. Satisfy any missing system prerequisites before installation; the archive does not install APT packages. The already-published `BoJangles-0.1.0-2-deb-source.tar.gz` is the complete matching application/engine source for both packages. Both contain the same qualified command and engine; neither includes uncompiled diagnostic or rejected crawler work. See the attached x86_64 validation records. Existing private and system installations remain separate.
 
 ## Native updates and webpage snapshots
 
