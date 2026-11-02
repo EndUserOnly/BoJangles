@@ -8,6 +8,14 @@
 
 BoJangles is a Linux Internet browsing suite with a native browser, crawler, independently controlled media windows and Media Center Library. Media workflows include recording, translation and transcription; optional models are obtained separately.
 
+## Current Debian release — November 2, 2026
+
+[Download BoJangles 0.1.0-2](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-deb.20261102): `bojangles_0.1.0-2_amd64.deb`, complete corresponding `BoJangles-0.1.0-2-deb-source.tar.gz`, checksums and validation. Verify `DEB-20261102-SHA256SUMS.txt`, then install with `sudo apt install ./bojangles_0.1.0-2_amd64.deb`.
+
+This newly assembled Debian package contains the qualified November 2 application and November 1 resource/upload engine, including header/bookmark visibility, explicit media playback and crawler timeout/progress fixes. It reuses the qualified compiled payload; no new application/engine compile was needed. Uncompiled diagnostic staging and the withdrawn crawler proposal are excluded.
+
+Ubuntu 24.04-compatible amd64. APT resolves 140 declared prerequisites. Qualification passed isolated APT install/reinstall/remove with user-data preservation, seven non-root commands, 144 maintenance probes, all 128 ELF checks and 12 focused source/package regressions. See `DEBIAN.md` and `DEB-20261102-VALIDATION.md`. Existing private installations can take command precedence; `/usr/bin/bojangles` selects the Debian installation. The signed archive update feed remains separate. Complete application/engine source is the named release asset; GitHub-generated source archives contain this control repository.
+
 ## Native updates and webpage snapshots
 
 [Download the qualified update release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-updates.20261030). Its complete application, matching source and checksums are separate release assets. The original first release remains below.
