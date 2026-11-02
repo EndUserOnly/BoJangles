@@ -1256,8 +1256,8 @@ class WindowSession(RegionMenus, UpdateControls):
                     self.control_panel.report(f"Media candidate ({event.detail}) — awaiting authorization")
                     if event.protected_media:
                         self._offer_drm_retry(event)
-                    elif not self._offer_selected_live_stream(event):
-                        self._attach_page_media(event)
+                    # Discovery only advertises available media. Opening requires
+                    # MEDIA_REQUESTED (Play) or the operator's media button.
 
                 elif event.kind is RendererEventKind.MEDIA_REQUESTED:
                     self._offer_requested_media(event)
@@ -1966,58 +1966,6 @@ class WindowSession(RegionMenus, UpdateControls):
             and getattr(window, "_page_attachment_identity", None) == identity
             for window in getattr(coordinator, "media", ())
         )
-
-    def _attach_page_media(self, event) -> bool:
-        """Attach eligible current-page media once through the existing broker."""
-        if (event.document_id != self.current_document_id or event.protected_media
-                or getattr(self, "_history_media_suppressed_document_id", None) == self.current_document_id):
-            return False
-        catalog, candidates = self._page_media_candidates()
-        candidate = next((item for item in candidates if item.uri == event.uri), None)
-        if candidate is None or candidate.protection:
-            return False
-        if candidate.kind not in {MediaKind.FILE, MediaKind.HLS, MediaKind.DASH}:
-            return False
-        # A multi-video article index is a browsing page, not a request to
-        # launch every preloaded clip. A directly opened media document remains
-        # an explicit target; a single primary page player still auto-attaches.
-        playable = {self._media_attachment_key(item) for item in candidates
-                    if item.kind in {MediaKind.FILE, MediaKind.HLS, MediaKind.DASH, MediaKind.EMBED}
-                    and not item.protection}
-        if candidate.source != "document" and len(playable) > 1:
-            return False
-        if self._has_live_media_attachment(candidate):
-            return False
-        stream = candidate.kind in {MediaKind.HLS, MediaKind.DASH}
-        # Wait for manifest inspection; fragments are not standalone movies.
-        if stream and candidate.source == "html_hint":
-            return False
-        mime = candidate.mime_type.split(";", 1)[0].strip().lower()
-        suffix = urlsplit(candidate.uri).path.lower().rsplit(".", 1)[-1]
-        if not stream and (mime in {"video/mp2t", "video/iso.segment"}
-                           or suffix in {"ts", "m4s", "cmfv", "cmfa"}):
-            return False
-        state = getattr(self, "_attached_page_media", None)
-        if state is None or state[0] != self.current_document_id:
-            state = (self.current_document_id, set())
-            self._attached_page_media = state
-        # Discovery can arrive incrementally. Once a primary player is attached,
-        # later clips/variants must not multiply windows; explicit media choices
-        # still use the ordinary broker and independent-window path.
-        key = self._media_attachment_key(candidate)
-        if state[1]:
-            return False
-        state[1].add(key)
-        try:
-            self._play_media_candidate(candidate, catalog)
-        except Exception as exc:
-            self.status.set(f"Page media unavailable — {exc}")
-            self.control_panel.report(f"Page media unavailable — {exc}")
-            return False
-        from bojangles.diagnostics import record
-        record("media_attachment", document_id=self.current_document_id,
-               url=candidate.uri, kind=candidate.kind.value, source="automatic")
-        return True
 
     def _offer_selected_live_stream(self, event) -> bool:
         """Consume one recent tile/link click for a real live HLS/DASH candidate."""
