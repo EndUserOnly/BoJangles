@@ -1987,6 +1987,9 @@ static void bj_scheme_fail(WebKitURISchemeRequest *request, const char *message)
 #define BJ_STAGE5D_MAX_HEADER_BYTES (16U * 1024U)
 #define BJ_STAGE5D_MAX_RESPONSE_HEADER_BYTES (32U * 1024U)
 #define BJ_STAGE5D_MAX_RESPONSE_HEADER_VALUE_BYTES (8U * 1024U)
+/* Separate hard response bounds; never grant the renderer network authority. */
+#define BJ_MAX_DOCUMENT_RESPONSE_BYTES (8ULL * 1024ULL * 1024ULL)
+#define BJ_MAX_RESOURCE_RESPONSE_BYTES (16ULL * 1024ULL * 1024ULL)
 #define BJ_STAGE5D_MAX_REQUEST_BODY (1024U * 1024U * 1024U)
 #define BJ_STAGE5D_MAX_CROSS_ORIGIN_POST (256U * 1024U)
 
@@ -2101,8 +2104,8 @@ static gboolean bj_seal_request_body(WebKitURISchemeRequest *request,
     return TRUE;
 }
 
-/* The custom HTTP handler does not perform a CORS preflight. Reject any
- * cross-origin request that would require one before sending broker IPC. */
+/* Seal and bound request metadata. The trusted gateway authorizes the
+ * destination and validates CORS preflight before any actual upload request. */
 static GByteArray *bj_resource_request_payload_metadata(struct BackendState *state,
                                                         WebKitURISchemeRequest *request,
                                                         const char *original,
@@ -2512,7 +2515,7 @@ static void bj_async_post_read_ready(GObject *source, GAsyncResult *result, gpoi
     }
     if (capture->body_length + length > BJ_STAGE5D_MAX_REQUEST_BODY) {
         g_bytes_unref(bytes);
-        bj_async_post_fail(capture, "trusted POST body exceeds same-origin limit");
+        bj_async_post_fail(capture, "trusted POST body exceeds request-body limit");
         return;
     }
 
@@ -2534,6 +2537,87 @@ static void bj_async_post_read_ready(GObject *source, GAsyncResult *result, gpoi
         capture->state->operations, bj_async_post_read_ready, capture);
 }
 
+extern gboolean webkit_uri_scheme_request_get_bojangles_upload_parts(
+    WebKitURISchemeRequest*, GVariant**, GBytes**, guint64*);
+
+/* Only inline bytes enter a memfd. File paths are capability identifiers, not
+ * host file authority; the gateway opens its own chooser snapshots. */
+static GByteArray *bj_selected_file_payload(struct BackendState *state,
+    WebKitURISchemeRequest *request, const char *original,
+    const char *resource_type, int *fd_out)
+{
+    GVariant *parts = NULL;
+    GBytes *inline_bytes = NULL;
+    guint64 total = 0;
+    *fd_out = -1;
+    if (!webkit_uri_scheme_request_get_bojangles_upload_parts(
+            request, &parts, &inline_bytes, &total))
+        return NULL;
+    GByteArray *metadata = bj_resource_request_payload_metadata(
+        state, request, original, resource_type, (size_t)total);
+    GByteArray *body = NULL;
+    int fd = -1;
+    gsize inline_length = 0;
+    const guint8 *data = g_bytes_get_data(inline_bytes, &inline_length);
+    gsize part_count = g_variant_n_children(parts);
+    if (!metadata || total > G_MAXINT64 || inline_length > 64U * 1024U * 1024U ||
+        !part_count || part_count > 256U)
+        goto done;
+    body = g_byte_array_new();
+    const char *field = (const char *)metadata->data;
+    const char *end = field + metadata->len;
+    unsigned index = 0;
+    while (field < end) {
+        const char *value = index++ == 5 ? "stage5f-files-stats" : field;
+        g_byte_array_append(body, (const guint8 *)value, strlen(value) + 1U);
+        field += strlen(field) + 1U;
+    }
+    char number[32];
+    snprintf(number, sizeof(number), "%zu", inline_length);
+    g_byte_array_append(body, (const guint8 *)number, strlen(number) + 1U);
+    snprintf(number, sizeof(number), "%zu", part_count);
+    g_byte_array_append(body, (const guint8 *)number, strlen(number) + 1U);
+    GVariantIter iterator;
+    const char *kind, *path;
+    guint64 offset, length;
+    g_variant_iter_init(&iterator, parts);
+    while (g_variant_iter_next(&iterator, "(&s&stt)", &kind, &path, &offset, &length)) {
+        g_byte_array_append(body, (const guint8 *)kind, strlen(kind) + 1U);
+        g_byte_array_append(body, (const guint8 *)path, strlen(path) + 1U);
+        snprintf(number, sizeof(number), "%" G_GUINT64_FORMAT, offset);
+        g_byte_array_append(body, (const guint8 *)number, strlen(number) + 1U);
+        snprintf(number, sizeof(number), "%" G_GUINT64_FORMAT, length);
+        g_byte_array_append(body, (const guint8 *)number, strlen(number) + 1U);
+        if (body->len > BJ_MAX_PACKET)
+            goto done;
+    }
+    fd = memfd_create("bojangles-upload-inline", MFD_CLOEXEC | MFD_ALLOW_SEALING);
+    if (fd < 0)
+        goto done;
+    for (size_t written = 0; written < inline_length;) {
+        ssize_t count = write(fd, data + written, inline_length - written);
+        if (count < 0 && errno == EINTR)
+            continue;
+        if (count <= 0)
+            goto done;
+        written += (size_t)count;
+    }
+    if (fcntl(fd, F_ADD_SEALS, F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE) != 0)
+        goto done;
+    *fd_out = fd;
+    fd = -1;
+ done:
+    if (fd >= 0) close(fd);
+    if (metadata) g_byte_array_unref(metadata);
+    g_variant_unref(parts);
+    g_bytes_unref(inline_bytes);
+    if (*fd_out < 0 && body) {
+        g_byte_array_unref(body);
+        body = NULL;
+    }
+    return body;
+}
+
 static gboolean bj_start_async_post_resource(struct BackendState *state,
                                              WebKitURISchemeRequest *request,
                                              const char *original,
@@ -2549,6 +2633,23 @@ static gboolean bj_start_async_post_resource(struct BackendState *state,
         return FALSE;
     }
 
+    int selected_fd = -1;
+    GByteArray *selected = bj_selected_file_payload(state, request, original, resource_type, &selected_fd);
+    if (selected) {
+        guint32 request_id = bj_allocate_resource_request_id(state);
+        struct PendingResourceRequest *pending = g_new0(struct PendingResourceRequest, 1);
+        pending->request = g_object_ref(request);
+        g_hash_table_insert(state->pending_resources, GUINT_TO_POINTER(request_id), pending);
+        gboolean sent = bj_send_packet_with_fd(state->resource_fd, BJ_RESOURCE_REQUEST,
+            request_id, selected->data, (guint32)selected->len, selected_fd);
+        close(selected_fd);
+        g_byte_array_unref(selected);
+        if (!sent) {
+            g_hash_table_remove(state->pending_resources, GUINT_TO_POINTER(request_id));
+            bj_scheme_fail(request, "selected upload handoff unavailable");
+        }
+        return sent;
+    }
     GInputStream *stream = webkit_uri_scheme_request_get_http_body(request);
     struct AsyncPostCapture *capture = g_new0(struct AsyncPostCapture, 1);
     capture->state = state;
@@ -2777,7 +2878,7 @@ bj_complete_resource_reply(struct BackendState *state,
         status < 200UL ||
         status >= 600UL ||
         (status >= 300UL && status < 400UL) ||
-        body_length > 8ULL * 1024ULL * 1024ULL ||
+        body_length > BJ_MAX_RESOURCE_RESPONSE_BYTES ||
         actual_seals < 0 ||
         (actual_seals & required_seals) != required_seals ||
         fstat(received_fd, &body_stat) != 0 ||
@@ -2962,8 +3063,11 @@ backend_resource_scheme_request(WebKitURISchemeRequest *request,
         if (g_strcmp0(method, "POST") == 0) {
             char *original = bj_decode_resource_uri(state, scheme_uri);
             int body_fd = -1;
-            GByteArray *body = original ? bj_resource_request_payload(
-                state, request, original, "DOCUMENT", FALSE, &body_fd) : NULL;
+            GByteArray *body = original ? bj_selected_file_payload(
+                state, request, original, "DOCUMENT", &body_fd) : NULL;
+            if (!body && original)
+                body = bj_resource_request_payload(
+                    state, request, original, "DOCUMENT", FALSE, &body_fd);
             guint32 request_id = bj_allocate_resource_request_id(state);
             gboolean sent = body && body_fd >= 0 && bj_send_packet_with_fd(
                 state->resource_fd, BJ_RESOURCE_REQUEST, request_id,
@@ -3005,10 +3109,12 @@ backend_resource_scheme_request(WebKitURISchemeRequest *request,
         return;
     }
 
-    /* Cross-origin POST bodies must never use the general createBodyStream()
-     * path: blob/file resolution can cross the trust boundary or crash pinned
-     * WebKit.  BoJangles permits only bounded, inline byte-vector FormData for
-     * this case (the EME license-request shape). */
+    /* Stream CORS POSTs through the same bounded sealed-body capture as
+     * same-origin uploads. Its unresolved-Blob guard remains mandatory: never
+     * resolve WebProcess BlobRegistry data in this UI process. The trusted
+     * gateway requires matching Origin metadata and anonymous preflight approval
+     * before sending any large cross-origin body. Other modes retain the
+     * small inline-only path (including the existing license-request shape). */
     const char *method = webkit_uri_scheme_request_get_http_method(request);
     char *document_origin = bj_private_origin_token(bj_resource_initiator(state, request));
     char *request_origin = bj_private_origin_token(original);
@@ -3021,7 +3127,11 @@ backend_resource_scheme_request(WebKitURISchemeRequest *request,
      * still owns redirect/final-response policy. WPE has no origin route. */
     gboolean cross_origin_post = g_strcmp0(method, "POST") == 0 && !same_origin;
 
-    if (g_strcmp0(method, "POST") == 0 && !cross_origin_post) {
+    SoupMessageHeaders *request_headers = webkit_uri_scheme_request_get_http_headers(request);
+    const char *fetch_mode = request_headers
+        ? soup_message_headers_get_one(request_headers, "Sec-Fetch-Mode") : NULL;
+    gboolean cors_post = cross_origin_post && g_strcmp0(fetch_mode, "cors") == 0;
+    if (g_strcmp0(method, "POST") == 0 && (!cross_origin_post || cors_post)) {
         gboolean started = bj_start_async_post_resource(
             state, request, original, "OTHER");
         g_free(original);
@@ -4837,7 +4947,7 @@ static gboolean backend_ipc_ready(gint fd, GIOCondition condition, gpointer user
         struct stat body_stat;
         int required_seals = F_SEAL_SEAL | F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_WRITE;
         int actual_seals = fcntl(received_fd, F_GET_SEALS);
-        if (errno || !end || *end || body_length > 8ULL * 1024ULL * 1024ULL ||
+        if (errno || !end || *end || body_length > BJ_MAX_DOCUMENT_RESPONSE_BYTES ||
             actual_seals < 0 || (actual_seals & required_seals) != required_seals ||
             fstat(received_fd, &body_stat) != 0 || body_stat.st_size < 0 ||
             (unsigned long long)body_stat.st_size != body_length) {
