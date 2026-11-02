@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections import deque
 import os
 import mmap
+from .upload_body import SelectedUploadBody
 import hmac
 import re
 import fcntl
@@ -56,6 +57,8 @@ from bojangles.media.pdf_inline import inline_pdf_embeds
 from .host_network_state import HostNetworkState
 from .wpe_gateway import WPEGatewayRenderer, WPERequestIntent
 from .wpe_transport import (
+    MAX_DOCUMENT_BYTES,
+    MAX_RESOURCE_BYTES,
     MAX_HEADER_BYTES,
     MAX_RESPONSE_HEADER_BYTES,
     MAX_HEADER_COUNT,
@@ -157,9 +160,38 @@ def _decode_string_list(payload: bytes) -> tuple[str, ...]:
         raise WPEProtocolError("WPE string-list payload is not UTF-8") from exc
 
 
-def _resource_request_from_payload(payload: bytes, *, with_statistics=False):
+def _resource_request_from_payload(payload: bytes, *, with_statistics=False, with_upload_parts=False):
     values = _decode_string_list(payload)
     group = None
+    upload_parts = None
+    if len(values) >= 12 and values[5] == "stage5f-files-stats":
+        try:
+            header_count = int(values[7])
+            base = 8 + header_count * 2
+            if not 0 <= header_count <= MAX_HEADER_COUNT:
+                raise ValueError()
+            inline_length, part_count = int(values[base + 1]), int(values[base + 2])
+            if not 0 <= inline_length <= 64 * 1024 * 1024 or not 1 <= part_count <= 256:
+                raise ValueError()
+            if len(values) != base + 3 + 4 * part_count:
+                raise ValueError()
+            parts = []
+            for index in range(part_count):
+                kind, path, offset, length = values[base + 3 + index * 4:base + 7 + index * 4]
+                if kind not in {"memory", "file"} or not offset.isascii() or not offset.isdigit() or not length.isascii() or not length.isdigit():
+                    raise ValueError()
+                offset, length = int(offset), int(length)
+                if offset > 0x7fffffffffffffff or length > 0x7fffffffffffffff:
+                    raise ValueError()
+                parts.append((kind, path, offset, length))
+            if not any(part[0] == "file" for part in parts):
+                raise ValueError()
+            upload_parts = (inline_length, tuple(parts))
+            values = values[:5] + ("stage5d-stats",) + values[6:base + 1]
+        except (ValueError, IndexError) as exc:
+            raise WPEProtocolError("invalid selected-file upload manifest") from exc
+        if not with_upload_parts:
+            raise WPEProtocolError("selected-file upload requires capability validation")
     if len(values) >= 9 and values[5] == "stage5d-stats":
         try:
             if not values[-1].isascii() or not values[-1].isdigit() or len(values[-1]) > 10:
@@ -169,7 +201,8 @@ def _resource_request_from_payload(payload: bytes, *, with_statistics=False):
         except ValueError as exc:raise WPEProtocolError("invalid resource statistics group") from exc
         values = values[:5] + ("stage5d",) + values[6:-1]
     def result(*parts):
-        return parts + (group,) if with_statistics else parts
+        result = parts + (group,) if with_statistics else parts
+        return result + (upload_parts,) if with_upload_parts else result
     # Stage 5B compatibility for focused fake-native/project tests.
     if len(values) == 4:
         return result(values[0], values[1], values[2], values[3], "GET", (), 0)
@@ -181,7 +214,7 @@ def _resource_request_from_payload(payload: bytes, *, with_statistics=False):
             count = int(values[7])
         except ValueError as exc:
             raise WPEProtocolError("WPE Stage 5D resource metadata is invalid") from exc
-        if body_length < 0 or body_length > MAX_REQUEST_BODY_BYTES:
+        if body_length < 0 or body_length > (0x7fffffffffffffff if upload_parts is not None else MAX_REQUEST_BODY_BYTES):
             raise WPEProtocolError("WPE request body length exceeds protocol bound")
         if count < 0 or count > MAX_HEADER_COUNT or len(values) != 8 + count * 2:
             raise WPEProtocolError("WPE resource header count mismatch")
@@ -238,7 +271,7 @@ class WPEBackend(RendererBackend):
         self.executable = os.fspath(executable)
         self.prefix = os.fspath(prefix)
         self.extension_dir = os.fspath(extension_dir)
-        self._transport = transport or WPEAllowedDataTransport()
+        self._transport = transport or WPEAllowedDataTransport(max_resource_bytes=MAX_RESOURCE_BYTES)
         from uuid import uuid4
         self._statistics_nonce = uuid4().hex
         self._statistics_highwater = 0
@@ -256,6 +289,7 @@ class WPEBackend(RendererBackend):
         self._request: NavigationRequest | None = None
         self._process: subprocess.Popen[bytes] | None = None
         self._native_diagnostics = None
+        self._selected_upload_files = {}
         self._upload_staging_dir: str | None = None
         self._host_network_state: HostNetworkState | None = None
         self._sock: socket.socket | None = None
@@ -719,6 +753,8 @@ class WPEBackend(RendererBackend):
         )
 
     def _send_fetched_document(self, request: NavigationRequest, fetched) -> None:
+        if len(fetched.body) > MAX_DOCUMENT_BYTES:
+            raise WPETransportError("document response exceeded sealed-body budget")
         required = (
             "F_ADD_SEALS",
             "F_GET_SEALS",
@@ -825,7 +861,7 @@ class WPEBackend(RendererBackend):
         self._request = request
         self.initial_navigation_state = (request.uri, request.method,
                                          self.navigation_state(request.uri, request.method))
-        if request.method == "POST" and len(request.body) > MAX_REQUEST_BODY_BYTES:
+        if request.method == "POST" and not isinstance(request.body, SelectedUploadBody) and len(request.body) > MAX_REQUEST_BODY_BYTES:
             self._queue_navigation_failure(request.uri, "top-level POST body exceeds trusted bound")
             return
 
@@ -1366,6 +1402,8 @@ class WPEBackend(RendererBackend):
         ))
 
     def _send_fetched_resource(self, request_id: int, fetched) -> None:
+        if len(fetched.body) > MAX_RESOURCE_BYTES:
+            raise WPETransportError("resource response exceeded sealed-body budget")
         required = (
             "F_ADD_SEALS", "F_GET_SEALS", "F_SEAL_SEAL",
             "F_SEAL_SHRINK", "F_SEAL_GROW", "F_SEAL_WRITE",
@@ -1505,8 +1543,8 @@ class WPEBackend(RendererBackend):
             self._send_resource_denial(packet.request_id, "security", "resource request has no active document")
             return
         try:
-            document_id, url, resource_type, initiator_url, method, request_headers, body_length, statistics_group = (
-                _resource_request_from_payload(packet.payload, with_statistics=True)
+            document_id, url, resource_type, initiator_url, method, request_headers, body_length, statistics_group, upload_parts = (
+                _resource_request_from_payload(packet.payload, with_statistics=True, with_upload_parts=True)
             )
         except Exception:
             if received_fd is not None:
@@ -1531,7 +1569,20 @@ class WPEBackend(RendererBackend):
         try:
             body_fd = received_fd
             received_fd = None
-            request_body = self._read_request_body(body_fd, body_length, method)
+            if upload_parts is None:
+                request_body = self._read_request_body(body_fd, body_length, method)
+            else:
+                try:
+                    if method != "POST":
+                        raise ValueError("selected-file body requires POST")
+                    inline_length, parts = upload_parts
+                    request_body = SelectedUploadBody(parts, self._selected_upload_files,
+                        document_id, body_fd, inline_length, body_length)
+                except (ValueError, OSError) as exc:
+                    raise WPEProtocolError("invalid selected-file upload authority") from exc
+                finally:
+                    if body_fd is not None:
+                        os.close(body_fd)
             from .wpe_transport import sanitize_application_headers
             trusted_headers = sanitize_application_headers(request_headers)
             network_initiator = dict((str(k).casefold(), str(v)) for k, v in request_headers).get("sec-bojangles-initiator", initiator_url)
@@ -1555,15 +1606,9 @@ class WPEBackend(RendererBackend):
                 initiator_parts[0].hostname.casefold(),
                 initiator_parts[2],
             )
-            if method == "POST" and cross_origin and body_length > MAX_CROSS_ORIGIN_POST_BYTES:
-                if received_fd is not None:
-                    os.close(received_fd)
-                    received_fd = None
-                self._send_resource_denial(
-                    packet.request_id, "security",
-                    "cross-origin POST body exceeds trusted inline bound",
-                )
-                return
+            if method == "POST" and cross_origin:
+                from .wpe_transport import validate_bulk_cross_origin_post
+                validate_bulk_cross_origin_post(request_headers, network_initiator, body_length, selected_file_body=upload_parts is not None)
             # BoJangles WebKit overwrites this reserved private metadata from
             # the loader's FetchOptions; never infer authority from jar contents.
             modes = [value for name, value in request_headers
@@ -1684,9 +1729,14 @@ class WPEBackend(RendererBackend):
                 if (hop_cross_origin and method in {"GET", "POST"}
                         and raw_headers.get("sec-fetch-mode") not in {"navigate", "no-cors"}):
                     from .wpe_transport import preflight_resource_request
+                    bulk_post = method == "POST" and body_length > MAX_CROSS_ORIGIN_POST_BYTES
+                    if bulk_post:
+                        from .wpe_transport import validate_bulk_cross_origin_post
+                        validate_bulk_cross_origin_post(request_headers, network_initiator, body_length, selected_file_body=isinstance(request_body, SelectedUploadBody))
                     preflight_resource_request(
                         self._transport, current, network_initiator, method,
-                        request_headers, credentialed=credentials_mode == "include")
+                        request_headers, credentialed=credentials_mode == "include",
+                        require_preflight=bulk_post)
                 if method == "GET" and not trusted_headers and not cookie_options:
                     # Preserve the established test/adapter transport contract for
                     # transports that do not opt into trusted browser cookies.
@@ -1818,7 +1868,13 @@ class WPEBackend(RendererBackend):
             with source.open("rb") as src, destination.open("xb") as dst:
                 shutil.copyfileobj(src, dst, length=1024 * 1024)
             os.chmod(destination, 0o400)
-            sandbox_paths.append(f"/state/uploads/{request_dir.name}/{destination.name}")
+            sandbox_path = f"/state/uploads/{request_dir.name}/{destination.name}"
+            from .upload_body import SelectedFile
+            if self._context is None:
+                raise RuntimeError("file chooser has no document authority")
+            self._selected_upload_files[sandbox_path] = SelectedFile.capture(
+                destination, self._context.document.document_id)
+            sandbox_paths.append(sandbox_path)
         payload = pack_strings(*sandbox_paths)
         self._send(NativePacket(NativeMessage.FILE_CHOOSER_RESULT, request_id=request_id, payload=payload))
 
@@ -2179,6 +2235,7 @@ class WPEBackend(RendererBackend):
             self._host_network_state = None
             shutil.rmtree(self._upload_staging_dir, ignore_errors=True)
             self._upload_staging_dir = None
+            self._selected_upload_files.clear()
         reader = self._reader
         if reader is not None and reader is not threading.current_thread():
             reader.join(timeout=3.0)

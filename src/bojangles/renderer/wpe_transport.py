@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import mmap
+from .upload_body import SelectedUploadBody
 import base64
 import errno
 import sys
@@ -44,6 +45,7 @@ from bojangles.security.privacy import BROWSER_USER_AGENT, PrivacyPolicyError, m
 
 
 MAX_DOCUMENT_BYTES = 8 * 1024 * 1024
+MAX_RESOURCE_BYTES = 16 * 1024 * 1024
 MAX_REQUEST_BODY_BYTES = 1024 * 1024 * 1024
 MAX_MEMORY_REQUEST_BODY_BYTES = 64 * 1024 * 1024
 MAX_CROSS_ORIGIN_POST_BYTES = 256 * 1024
@@ -537,6 +539,7 @@ class WPEAllowedDataTransport:
         *,
         timeout: float = 15.0,
         max_bytes: int = MAX_DOCUMENT_BYTES,
+        max_resource_bytes: int | None = None,
         max_request_body_bytes: int = MAX_REQUEST_BODY_BYTES,
         ssl_context: ssl.SSLContext | None = None,
         session_cookies: WPESessionCookieJar | None = None,
@@ -551,7 +554,12 @@ class WPEAllowedDataTransport:
         if max_request_body_bytes <= 0 or max_request_body_bytes > MAX_REQUEST_BODY_BYTES:
             raise ValueError("invalid WPE request-body budget")
         self.timeout = float(timeout)
+        if max_resource_bytes is None:
+            max_resource_bytes = max_bytes
+        if max_resource_bytes <= 0 or max_resource_bytes > MAX_RESOURCE_BYTES:
+            raise ValueError("invalid WPE resource byte budget")
         self.max_bytes = int(max_bytes)
+        self.max_resource_bytes = int(max_resource_bytes)
         self.max_request_body_bytes = int(max_request_body_bytes)
         self.ssl_context = ssl_context or ssl.create_default_context()
         self.session_cookies = session_cookies if session_cookies is not None else WPESessionCookieJar()
@@ -560,6 +568,13 @@ class WPEAllowedDataTransport:
         )
         self.basic_credential_resolver = basic_credential_resolver
         self.digest_credential_resolver = digest_credential_resolver
+
+    def response_byte_budget(self, method: str, top_level_navigation: bool) -> int:
+        # Only trusted callers distinguish document and resource authority.
+        # OPTIONS/HEAD retain the document-sized bound; request limits are separate.
+        if not top_level_navigation and method in {"GET", "POST"}:
+            return self.max_resource_bytes
+        return self.max_bytes
 
     @staticmethod
     def _parts(url: str):
@@ -577,6 +592,8 @@ class WPEAllowedDataTransport:
         return parsed, scheme, port, target
 
     def request_timeout(self, body=None):
+        if isinstance(body, SelectedUploadBody):
+            return None  # Connect, idle and cancellation bounds remain active.
         # Bulk uploads have a size-based total deadline; ordinary page requests
         # retain their original budget. A 15-minute ceiling remains bounded.
         if body is not None and len(body) > 1024 * 1024:
@@ -660,7 +677,7 @@ class WPEAllowedDataTransport:
                     raise WPETransportError("preflight requires explicit trusted preflight authority")
         if method in {"GET", "HEAD", "OPTIONS"} and body_bytes:
             raise WPETransportError(f"{method} request body is not permitted")
-        if len(body_bytes) > self.max_request_body_bytes:
+        if not isinstance(body_bytes, SelectedUploadBody) and len(body_bytes) > self.max_request_body_bytes:
             raise WPETransportError("WPE request body exceeded trusted byte budget")
 
         host = parsed.hostname
@@ -746,7 +763,7 @@ class WPEAllowedDataTransport:
                 raise WPETransportError("trusted Digest Authorization contains unsafe bytes")
             headers["Authorization"] = digest_header
 
-        if isinstance(body_bytes, mmap.mmap):
+        if isinstance(body_bytes, (mmap.mmap, SelectedUploadBody)):
             body_bytes.seek(0)
             headers["Content-Length"] = str(len(body_bytes))
         try:
@@ -789,8 +806,9 @@ class WPEAllowedDataTransport:
                     record("transport_handoff", url=url, kind="media", status=response.status,
                            mime_type=mime_type)
                     raise WPEMediaOffered(url, mime_type)
-            response_body = b"" if method == "HEAD" else response.read(self.max_bytes + 1)
-            if len(response_body) > self.max_bytes:
+            budget = self.response_byte_budget(method, top_level_navigation)
+            response_body = b"" if method == "HEAD" else response.read(budget + 1)
+            if len(response_body) > budget:
                 raise WPETransportError("renderer document exceeded trusted byte budget")
             encoding = response.headers.get_content_charset() or ""
             response_headers = self.sanitize_response_headers(response.getheaders())
@@ -1225,7 +1243,22 @@ def _cors_safelisted_value(name, value):
                and ch not in '"():<>?@[\\]{}' for ch in value)
 
 
-def preflight_resource_request(transport, url, initiator_url, method, headers, *, credentialed):
+def validate_bulk_cross_origin_post(headers, initiator_url, body_length, *, selected_file_body=False):
+    """Large cross-origin uploads require positive, nonopaque CORS authority."""
+    if body_length < 0 or body_length > (0x7fffffffffffffff if selected_file_body else MAX_REQUEST_BODY_BYTES):
+        raise WPETransportError("cross-origin POST exceeds trusted request-body limit")
+    if body_length <= MAX_CROSS_ORIGIN_POST_BYTES:
+        return False
+    values = {}
+    for name, value in headers:
+        values.setdefault(str(name).casefold(), []).append(str(value).strip())
+    expected = WPEAllowedDataTransport.trusted_origin_header(initiator_url)
+    if values.get("sec-fetch-mode") != ["cors"] or values.get("origin") != [expected]:
+        raise WPETransportError("large cross-origin POST requires unambiguous document CORS authority")
+    return True
+
+
+def preflight_resource_request(transport, url, initiator_url, method, headers, *, credentialed, require_preflight=False):
     """Authorize non-simple cross-origin traffic without credentials or retries."""
     fields = {str(k).casefold(): str(v).strip() for k, v in headers}
     unsafe = []
@@ -1238,11 +1271,12 @@ def preflight_resource_request(transport, url, initiator_url, method, headers, *
                 "application/x-www-form-urlencoded", "multipart/form-data", "text/plain"}:
             continue
         unsafe.append(name)
-    if not unsafe:
+    if not unsafe and not require_preflight:
         return
     origin = fields.get("origin") or transport.trusted_origin_header(initiator_url)
-    request_headers = (("Origin", origin), ("Access-Control-Request-Method", method),
-                       ("Access-Control-Request-Headers", ", ".join(sorted(unsafe))))
+    request_headers = (("Origin", origin), ("Access-Control-Request-Method", method))
+    if unsafe:
+        request_headers += (("Access-Control-Request-Headers", ", ".join(sorted(unsafe))),)
     validate_preflight_request(request_headers, initiator_url)
     try:
         response = transport.fetch_once(
@@ -1291,6 +1325,8 @@ def classify_options_request(url, initiator_url, headers):
 
 def normalize_request_body(body):
     """Keep validated read-only descriptor mappings streamed, never copied."""
+    if isinstance(body, SelectedUploadBody):
+        return body
     if isinstance(body, mmap.mmap):
         if not memoryview(body).readonly:
             raise WPETransportError("request body mapping must be immutable")
