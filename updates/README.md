@@ -1,15 +1,15 @@
 # BoJangles signed update channels
 
-## 0.2.0 migration — preparation, not yet activated
+## 0.2.0 stable release — date-free channel active
 
-Follow [the verified migration instructions](MIGRATION.md). The compatible build is `public-release-20261109-update-choices-local`, version 0.2.0. Other builds can share the version number without supporting the new release chooser. Public 0.2.0 assets and the new channel must be verified before activation.
+Follow [the verified migration instructions](MIGRATION.md). The compatible build is `public-release-20261109-update-choices-local`, version 0.2.0. Other builds can share the version number without supporting the new release chooser. [BoJangles 0.2.0 is published](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0). All five public assets matched their verified originals; the signed feed, safe extraction, complete inventory and runtime checks passed in isolated storage.
 
 | Endpoint | Format and status |
 | --- | --- |
 | `stable.json` | Legacy schema 1; existing announcement is expired. Preserved for older clients. |
-| `stable-v2.json` | Reserved for schema 2; not yet published or ready to configure. |
+| `stable-v2.json` | Active schema 2; no calendar expiration; sequence 2026110901. |
 
-Existing clients reject schema 2. Bootstrap through the complete verified installer after its public release; do not overwrite the legacy endpoint with an incompatible format. Expiration affects the old announcement, not installed software or canonical source. The old weekly renewal automation remains paused.
+Existing clients reject schema 2. Bootstrap through the published complete verified installer; do not overwrite the legacy endpoint with an incompatible format. Expiration affects the old announcement, not installed software or canonical source. The old weekly renewal automation remains paused.
 
 ## Publisher trust
 
@@ -31,3 +31,5 @@ Schema 2 has no calendar expiry. Legacy schema 1 retains its original maximum se
 Publish the qualified complete application, matching complete source, checksums and qualification record first. Verify downloaded public bytes, then sign and publish the new feed last. Bind each increasing sequence to the exact release identity and digests. The schema 2 signer must write to `stable-v2.json`, not the legacy endpoint. Sign when the approved catalogue changes; do not resume the former weekly expiry-renewal instructions. See [release intake and publication](../RELEASE-PROCESS.md).
 
 The historical [October update release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-updates.20261030) remains available. This private archive updater does not upgrade a system Debian package automatically. No 0.2.0 Debian package is claimed.
+
+For compatible clients, configure `https://raw.githubusercontent.com/EndUserOnly/BoJangles/main/updates/stable-v2.json` with the unchanged public key above. The initial catalogue offers the latest qualified build only; older alternatives will be added only after installation/restore compatibility is qualified.
