@@ -1,8 +1,8 @@
 # Release intake and publication
 
-## Current preparation status — 9 November 2026
+## Current release status — 9 November 2026
 
-BoJangles 0.2.0 is compiled, qualified and installed on the owner’s system. Build identity: `public-release-20261109-update-choices-local`; maintained stable engine: WPE WebKit 2.54.2. This is a preparation record, not a public download announcement. The published November 2 packages remain 0.1.0-2. No 0.2.0 Debian package is claimed.
+BoJangles 0.2.0 is compiled, qualified and installed on the owner’s system. Build identity: `public-release-20261109-update-choices-local`; maintained stable engine: WPE WebKit 2.54.2. [Stable release v0.2.0 is published](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0) and marked Latest. The complete application, complete corresponding-source archive, checksums and qualification records are attached. The older November 2 Debian package remains 0.1.0-2; no 0.2.0 Debian package is claimed.
 
 The obsolete October 0.1.0 workflow is preserved in `.github/legacy-workflows/build-update.yml`, outside GitHub’s active workflow directory. Do not restore or run it against current work. Its old baseline, publication target and 90-minute cutoff do not implement this process.
 
@@ -30,13 +30,12 @@ The qualified 0.2.0 client supports a signed schema 2 stable catalogue. Its enve
 
 Each entry binds its release identity, increasing sequence, version, date, notes, HTTPS archive URL, byte size, archive SHA-256 and publication-manifest SHA-256. Older choices have unique lower sequences. Signature, integrity and replay protections remain enforced. The newest release is prominent, recommended and selected by default; choosing an older release shows that release’s notes and requires an explicit download/install action.
 
-Legacy schema 1 retains its original expiry checks. Older public clients do not accept schema 2. Do not silently replace the legacy feed before documenting and verifying the migration/install path. The current legacy feed has not been renewed or converted by this preparation. The former weekly expiry-renewal automation remains paused.
+Legacy schema 1 retains its original expiry checks. Older public clients do not accept schema 2. Do not silently replace the legacy feed before documenting and verifying the migration/install path. The legacy feed remains schema 1. The separately published `updates/stable-v2.json` is active at sequence `2026110901`; see [migration instructions](updates/MIGRATION.md). The former weekly expiry-renewal automation remains paused.
 
-## Remaining 0.2.0 publication blockers
+## Completed 0.2.0 publication
 
-- Sanitized source reconciliation and complete corresponding-source archive.
-- Draft release assets, public installation instructions and download verification.
-- Explicit migration plan for legacy clients before switching the live feed.
-- Owner publication decision after review.
+The owner authorized publication. All five uploaded assets were downloaded publicly and matched their local SHA-256 digests. All 214 application inputs, 32 maintained engine inputs and the complete source archive inventory were verified; the engine tree matches all 39,100 authenticated upstream files plus four declared maintained additions. The new signed public feed, latest selection, safe archive extraction, complete inventory and runtime prerequisites passed in isolated storage. No owner installation or profile change occurred.
+
+The repository remains a control/source-overlay repository. The named complete corresponding-source asset is the reviewed source distribution; GitHub-generated archives and historical overlay files must not be presented as its substitute. Future automation must preserve this distinction or explicitly synchronize a reviewed source tree before claiming branch/source correspondence.
 
 No new engine build is required merely to publish the already qualified application. Before the next engine upgrade, reconcile the engine packaging/build-type checks with the production build configuration and complete the full stable-release/security assessment.
