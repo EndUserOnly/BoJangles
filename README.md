@@ -1,11 +1,12 @@
 # BoJangles
 
-## 0.2.0 release preparation
+## Latest stable release — BoJangles 0.2.0
 
-**BoJangles 0.2.0 is compiled, qualified and installed locally; GitHub publication is being prepared.** The newest published download remains the November 2 release below. The repository source overlay still needs reconciliation with the complete 0.2.0 corresponding-source package.
+**[Download BoJangles 0.2.0](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0)** — published November 9, 2026 for Ubuntu 24.04-compatible Linux x86_64. Build: `public-release-20261109-update-choices-local`. Includes the redesigned Media Center, qualified recording work and date-free signed update release choices with the newest release prominently Recommended.
 
-See [Release intake and publication](RELEASE-PROCESS.md) for stable-only WPE updates, security review, source and asset verification, and signed-feed migration. The obsolete automatic 0.1.0 build/publish workflow is archived. Compilation and publication remain at the owner’s discretion.
+The release provides the complete application archive, complete corresponding application/engine source, SHA-256 checksums and qualification records. Verify the files before installation and follow the release instructions. **No new 0.2.0 Debian package is supplied.**
 
+[Update-channel migration](updates/MIGRATION.md) · [Release process and stable-only WPE policy](RELEASE-PROCESS.md). The named complete source release asset is authoritative; GitHub-generated archives contain this control/source-overlay repository. The old automatic build/publish workflow remains archived.
 
 ![BoJangles Home and browser controls](bojangles-home.png)
 
@@ -15,7 +16,7 @@ See [Release intake and publication](RELEASE-PROCESS.md) for stable-only WPE upd
 
 BoJangles is a Linux Internet browsing suite with a native browser, crawler, independently controlled media windows and Media Center Library. Media workflows include recording, translation and transcription; optional models are obtained separately.
 
-## Current Linux release — November 2, 2026
+## Previous Debian and archive release — November 2, 2026
 
 [Download BoJangles 0.1.0-2](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-deb.20261102): `bojangles_0.1.0-2_amd64.deb`, complete corresponding `BoJangles-0.1.0-2-deb-source.tar.gz`, checksums and validation. Verify `DEB-20261102-SHA256SUMS.txt`, then install with `sudo apt install ./bojangles_0.1.0-2_amd64.deb`.
 
@@ -25,7 +26,7 @@ Ubuntu 24.04-compatible amd64. APT resolves 140 declared prerequisites. Qualific
 
 ### Linux x86_64 archive
 
-The same [current release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-deb.20261102) also provides `BoJangles-0.1.0-20261102-linux-x86_64.tar.gz`. Verify it against `X86_64-20261102-SHA256SUMS.txt`, extract with `tar -xzf BoJangles-0.1.0-20261102-linux-x86_64.tar.gz`, then run:
+The same [previous release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.1.0-deb.20261102) also provides `BoJangles-0.1.0-20261102-linux-x86_64.tar.gz`. Verify it against `X86_64-20261102-SHA256SUMS.txt`, extract with `tar -xzf BoJangles-0.1.0-20261102-linux-x86_64.tar.gz`, then run:
 
 ```sh
 python3 public-release-20261102-media-crawler-local/runtime_dependencies.py public-release-20261102-media-crawler-local
