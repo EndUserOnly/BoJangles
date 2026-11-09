@@ -1,10 +1,10 @@
 # Migrating to the date-free BoJangles update channel
 
-Status, November 9, 2026: instructions prepared for the qualified update-choice build. Public 0.2.0 release assets and the new feed are not yet available. Do not use these instructions to download an older 0.2.0 build merely because its version number matches.
+Status, November 9, 2026: **BoJangles 0.2.0 is published and the date-free update channel is active.** [Download the verified stable release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0). Its five uploaded assets were downloaded publicly and matched the qualified originals. Use the exact build below; version alone is insufficient.
 
 ## Supported transition
 
-Keep `updates/stable.json` as the legacy schema 1 endpoint. Reserve `updates/stable-v2.json` for the date-free schema 2 channel. The latter must not be configured until its signed contents and public download assets have been verified. This avoids sending a format that existing clients reject to their configured endpoint.
+Keep `updates/stable.json` as the legacy schema 1 endpoint. Use `updates/stable-v2.json` for the active date-free schema 2 channel. Its signed contents and public download assets have been verified. This avoids sending a format that existing clients reject to their configured endpoint.
 
 The legacy announcement is expired. Expiration applies to the announcement, not the source code or an installed application. Do not change the clock, suppress validation, or revive the obsolete weekly renewal automation. This migration uses the complete verified installer to bootstrap compatible clients; it does not require a renewed legacy announcement.
 
@@ -21,9 +21,9 @@ The migration target is **0.2.0**, build **`public-release-20261109-update-choic
 
 The earlier `public-release-20261109-source-reconciled-local` build also reports 0.2.0 but is not this update-choice build. Version alone is insufficient. No new 0.2.0 Debian package is supplied by this procedure.
 
-## Manual bootstrap after publication
+## Manual bootstrap
 
-1. Download the exact archive above, its published checksum record and the complete corresponding-source archive from the verified 0.2.0 GitHub release. A release link will be added here only after those assets are available and checked.
+1. Download the exact archive above, its published checksum record and the complete corresponding-source archive from the verified 0.2.0 GitHub release. [Open the published release](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0).
 2. Verify the archive before extraction:
 
 ```sh
@@ -49,11 +49,11 @@ python3 -B public-release-20261109-update-choices-local/install-public-release.p
 
 The installer changes the private command and retains its predecessor. It refuses to overwrite an existing release identity. If this exact build is already installed, verify that installation rather than deleting it or reinstalling over it. On systems with both Debian and private installations, launch the private command above; `/usr/bin/bojangles` still selects the Debian installation. A desktop launcher must select the private command to use this release.
 
-## Configure the new channel only after activation
+## Configure the active date-free channel
 
 Open **Updates** in a fresh instance. Its Installed identity must be `public-release-20261109-update-choices-local`.
 
-After the publisher confirms activation, enter the following in the inline publisher controls:
+Enter the following in the inline publisher controls:
 
 - Publisher HTTPS feed: `https://raw.githubusercontent.com/EndUserOnly/BoJangles/main/updates/stable-v2.json`
 - Publisher public key (Base64): `gFDsD9ed7SjCJchRi0QaQDfzSZolsTEKbwMdEwbVT4o=`
@@ -72,4 +72,4 @@ Schema 2 removes calendar expiration while retaining signature, HTTPS, archive s
 4. Sign locally with the existing publisher key; publish only the signed envelope at `updates/stable-v2.json`. Never upload the signing seed. Leave the legacy endpoint intact.
 5. Fetch the public new endpoint and verify its signature, schema, sequence and advertised archive. Exercise download and extraction in isolated HOME/XDG storage. Only then mark this guide activated and direct users to configure the new URL.
 
-Activation remains blocked until the complete source package and public release assets are verified. No new compile, installed-profile change or signing-key access is part of preparing these instructions.
+Activation record: stable release `v0.2.0` published at repository commit `531be9daee36481a8574dde56684654c0a460031`; signed schema 2 sequence `2026110901`. All five public assets match their local digests. The existing publisher key signed the new announcement locally; its private seed was not uploaded. No new compile, owner installation, launcher switch or owner-profile migration was performed during publication. The source archive retains its preparation-time documentation; this repository guide supplies the current channel status.
