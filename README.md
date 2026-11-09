@@ -1,5 +1,12 @@
 # BoJangles
 
+## 0.2.0 release preparation
+
+**BoJangles 0.2.0 is compiled, qualified and installed locally; GitHub publication is being prepared.** The newest published download remains the November 2 release below. The repository source overlay still needs reconciliation with the complete 0.2.0 corresponding-source package.
+
+See [Release intake and publication](RELEASE-PROCESS.md) for stable-only WPE updates, security review, source and asset verification, and signed-feed migration. The obsolete automatic 0.1.0 build/publish workflow is archived. Compilation and publication remain at the owner’s discretion.
+
+
 ![BoJangles Home and browser controls](bojangles-home.png)
 
 ## Command control sheet
