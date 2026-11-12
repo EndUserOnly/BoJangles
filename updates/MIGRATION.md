@@ -19,7 +19,7 @@ The migration target is **0.2.0**, build **`public-release-20261109-update-choic
 | Archive SHA-256 | `8274b9d93771bcbd3d10815045bd5cdc7d584027d5a5c088e70c3c3692696d0f` |
 | Publication-manifest SHA-256 | `08d8d866cc273c58cdef75fa7219cb27db6c7b4b0b16f5446b4a8e75843f01a6` |
 
-The earlier `public-release-20261109-source-reconciled-local` build also reports 0.2.0 but is not this update-choice build. Version alone is insufficient. No new 0.2.0 Debian package is supplied by this procedure.
+The earlier `public-release-20261109-source-reconciled-local` build also reports 0.2.0 but is not this update-choice build. Version alone is insufficient. A separate 0.2.0-1 Debian installer is now available in the same published release with matching complete source and checksums. These manual-bootstrap instructions apply to the private archive installation; Debian installation and upgrades use APT and /usr/bin/bojangles.
 
 ## Manual bootstrap
 
