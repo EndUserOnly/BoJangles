@@ -4,7 +4,20 @@
 
 **[Download BoJangles 0.2.0](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0)** — published November 9, 2026 for Ubuntu 24.04-compatible Linux x86_64. Build: `public-release-20261109-update-choices-local`. Includes the redesigned Media Center, qualified recording work and date-free signed update release choices with the newest release prominently Recommended.
 
-The release provides the complete application archive, complete corresponding application/engine source, SHA-256 checksums and qualification records. Verify the files before installation and follow the release instructions. **No new 0.2.0 Debian package is supplied.**
+The release provides the complete application archive and Debian installer, complete corresponding application/engine source, SHA-256 checksums and qualification records. Verify the files before installation.
+
+### Debian installer — Ubuntu 24.04-compatible amd64
+
+**[Download bojangles_0.2.0-1_amd64.deb](https://github.com/EndUserOnly/BoJangles/releases/download/v0.2.0/bojangles_0.2.0-1_amd64.deb)** · [Matching complete source](https://github.com/EndUserOnly/BoJangles/releases/download/v0.2.0/BoJangles-0.2.0-1-deb-source.tar.gz) · [Debian checksums](https://github.com/EndUserOnly/BoJangles/releases/download/v0.2.0/DEB-0.2.0-1-SHA256SUMS.txt).
+
+Save work and close BoJangles, then install using APT:
+
+```sh
+sudo apt install ./bojangles_0.2.0-1_amd64.deb
+/usr/bin/bojangles open
+```
+
+The package reuses the qualified 0.2.0 application and stable WPE WebKit 2.54.2 engine. It preserves private installations and profiles; a private command or desktop entry may take precedence, so `/usr/bin/bojangles` explicitly selects the system package. Debian updates/removal use APT. [Read the package instructions and validation](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0). The signed archive update channel remains separate.
 
 [Update-channel migration](updates/MIGRATION.md) · [Release process and stable-only WPE policy](RELEASE-PROCESS.md). The named complete source release asset is authoritative; GitHub-generated archives contain this control/source-overlay repository. The old automatic build/publish workflow remains archived.
 
