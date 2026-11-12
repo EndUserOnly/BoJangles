@@ -2,7 +2,7 @@
 
 ## Current release status — 9 November 2026
 
-BoJangles 0.2.0 is compiled, qualified and installed on the owner’s system. Build identity: `public-release-20261109-update-choices-local`; maintained stable engine: WPE WebKit 2.54.2. [Stable release v0.2.0 is published](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0) and marked Latest. The complete application, complete corresponding-source archive, checksums and qualification records are attached. The older November 2 Debian package remains 0.1.0-2; no 0.2.0 Debian package is claimed.
+BoJangles 0.2.0 is compiled, qualified and installed on the owner’s system. Build identity: `public-release-20261109-update-choices-local`; maintained stable engine: WPE WebKit 2.54.2. [Stable release v0.2.0 is published](https://github.com/EndUserOnly/BoJangles/releases/tag/v0.2.0) and marked Latest. The complete application, complete corresponding-source archive, checksums and qualification records are attached. The current Debian installer is 0.2.0-1, supplied with its complete matching source, checksums and qualification records; the older 0.1.0-2 package remains historical.
 
 The obsolete October 0.1.0 workflow is preserved in `.github/legacy-workflows/build-update.yml`, outside GitHub’s active workflow directory. Do not restore or run it against current work. Its old baseline, publication target and 90-minute cutoff do not implement this process.
 
@@ -39,3 +39,8 @@ The owner authorized publication. All five uploaded assets were downloaded publi
 The repository remains a control/source-overlay repository. The named complete corresponding-source asset is the reviewed source distribution; GitHub-generated archives and historical overlay files must not be presented as its substitute. Future automation must preserve this distinction or explicitly synchronize a reviewed source tree before claiming branch/source correspondence.
 
 No new engine build is required merely to publish the already qualified application. Before the next engine upgrade, reconcile the engine packaging/build-type checks with the production build configuration and complete the full stable-release/security assessment.
+
+
+## Debian package publication — November 12, 2026
+
+The qualified 0.2.0-1 amd64 Debian package and five companion files are attached to the existing stable v0.2.0 release. All six public downloads matched their local SHA-256 digests. Fresh install, reinstall, removal and upgrade from public 0.1.0-2 passed in disposable Ubuntu storage, along with seven non-root commands, 144 maintenance probes, all 163 ELF files and user-data preservation. Complete source preserves all 214 application and 32 maintained engine inputs; only packaging source and Debian instructions changed. No application/engine compile, host installation, private launcher change or signed-feed change occurred. System package updates/removal use APT.
